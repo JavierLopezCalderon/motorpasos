@@ -11,6 +11,7 @@
 #define Botonstart    7
 #define BotonCiclos   8
 #define BotonVel      9
+#define Relevador     10
 
 class accesos {
   public:
@@ -21,7 +22,8 @@ class accesos {
 int pasos = 1200, timedelay = 2;
 int limiteContador = 1;
 int fin, dir_estado, estado_reset, cambio_giro, estado_inicio;
-
+int countinicio;
+int pausecontador;
 
 accesos accion[2];
 LiquidCrystal_I2C lcd(0x27, 20, 4);  //
@@ -31,12 +33,14 @@ void setup() {
   Serial.begin(9600);
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
+  pinMode(Relevador, OUTPUT);
   pinMode(Botonreset, INPUT_PULLUP);
   pinMode(fin_carrera1, INPUT_PULLUP);
   pinMode(fin_carrera2, INPUT_PULLUP);
   pinMode(Botonstart, INPUT_PULLUP);
   pinMode(BotonCiclos, INPUT_PULLUP);
   pinMode(BotonVel, INPUT_PULLUP);
+  
   
   lcd.init();
   lcd.backlight();
@@ -60,11 +64,13 @@ void setup() {
 void loop() {
  // lcd_contador();
  // EEPROM.update(6, 1);
-  while(( accion[1].count < (limiteContador*100)+1) && estado_inicio == 1 && estado_reset == 0){ 
+ digitalWrite(Relevador, LOW);
+  while(( accion[1].count < (limiteContador*100)) && estado_inicio == 1 && estado_reset == 0){ 
+    digitalWrite(Relevador, HIGH);
     if(dir_estado == 0){
-      digitalWrite(dirPin, HIGH);   
+      digitalWrite(dirPin, LOW);   
     }else{
-      digitalWrite(dirPin, LOW);
+      digitalWrite(dirPin, HIGH);
     }
     button_timedelay();
     ciclopaso();
@@ -109,17 +115,20 @@ void ciclopaso(){
     delay(timedelay);
    if(digitalRead(fin_carrera1)==LOW && estado_reset == 0 && dir_estado == 1){
      Serial.println(digitalRead(fin_carrera1));
-      accion[dir_estado].count++;
+      if(countinicio == 1){
+        accion[dir_estado].count++;
+      }      
       dir_estado = 0;
       cambio_giro = 1;  
-      delay(500);  
+      delay(200);  
     }else if(digitalRead(fin_carrera2)==LOW&& estado_reset == 0 && dir_estado == 0){
       // EEPROM.update(4, dir_estado);
        accion[dir_estado].count++;
+       countinicio = 1;
       dir_estado = 1;
       cambio_giro = 1;
-      delay(500);
-    }else if(digitalRead(fin_carrera1)==LOW&& estado_reset == 1 && dir_estado == 1){
+      delay(200);
+    }else if(digitalRead(fin_carrera1)==LOW&& estado_reset == 1 ){
       dir_estado = 0;
       cambio_giro = 1;
       digitalWrite(stepPin, LOW);
@@ -136,10 +145,10 @@ void ciclopaso(){
 
 void lcd_contador(){
   lcd.setCursor(0, 0);
-  lcd.print("S:");
+  lcd.print("Subidas:");
   lcd.print(accion[0].count);
   lcd.setCursor(0, 1);
-  lcd.print("B:");
+  lcd.print("Bajadas:");
   lcd.print(accion[1].count);
   lcd.setCursor(0, 2);
   lcd.print("Ciclos:");
